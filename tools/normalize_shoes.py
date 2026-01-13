@@ -6,7 +6,7 @@ import shutil
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 ASSETS_SRC = PROJECT_ROOT / "assets"
-ASSETS_DST = PROJECT_ROOT / "assets_new"
+ASSETS_DST = PROJECT_ROOT / "assets_processed"
 
 SHOES_SRC = ASSETS_SRC / "shoes"
 UI_SRC = ASSETS_SRC / "UI"

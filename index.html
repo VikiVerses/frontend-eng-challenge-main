@@ -1,8 +1,7 @@
 <!-- =========================
-index.html
+index.html 
 Try On Quiz
 ========================= -->
-
 <!doctype html>
 <html lang="en">
   <head>
@@ -22,18 +21,23 @@ Try On Quiz
 
   <body>
     <!--
-      "app" is a global wrapper.
+      App uses a “single-page, multi-screen” structure:
+      - All screens exist in the DOM at once.
+      - app.js shows exactly one screen by toggling .is-hidden.
+      - #stage is the shared container used for (optional) cross-screen transitions.
     -->
     <div id="app" class="app" aria-live="polite">
-
-      <!-- =========================
-      TOPBAR / NAVIGATION
-      ========================= -->
+      <!--
+        Global topbar:
+        - Reused across all screens for consistent navigation.
+        - JS binds hamburger + logo to the same “go home” handler.
+        - Spacer balances the grid/flex so logo stays centered.
+      -->
       <header class="topbar">
         <button
           class="topbar__hamburger"
           type="button"
-          aria-label="Menu (not implemented)"
+          aria-label="Menu (returns to start screen)"
           id="menu-btn"
         >
           <span class="hamburger-icon" aria-hidden="true">
@@ -42,19 +46,20 @@ Try On Quiz
         </button>
 
         <div class="topbar__logo">
+          <!-- src is set in app.js via a centralized ASSETS config -->
           <img id="logo-img" class="topbar__logoImg" src="" alt="On logo" />
         </div>
 
-        <!-- Spacer keeps the logo centered (same width as the left button) -->
         <div class="topbar__spacer" aria-hidden="true"></div>
       </header>
 
-      <!-- Stage: we animate this container when switching screens -->
+      <!--
+        Stage container:
+        - Holds all “screens” to keep layout consistent.
+        - app.js toggles .is-hidden on each <main>.
+      -->
       <div id="stage" class="stage">
-
-        <!-- =========================
-        START SCREEN
-        ========================= -->
+        <!-- START SCREEN: static hero + CTA that initializes state & enters quiz -->
         <main id="start-screen" class="screen start">
           <div class="start__inner">
             <div class="start__content">
@@ -70,6 +75,7 @@ Try On Quiz
               <div class="start__note">30 Days risk free</div>
             </div>
 
+            <!-- Decorative image; src set in app.js (keeps paths/config in JS) -->
             <img
               id="runner-img"
               class="start__runner"
@@ -80,14 +86,18 @@ Try On Quiz
           </div>
         </main>
 
-        <!-- =========================
-        QUIZ SCREEN
-        ========================= -->
+        <!--
+          QUIZ SCREEN:
+          - Data-driven: question text + answer buttons are rendered from data.json.
+          - #quiz-content is the “fade target” so we can animate question changes
+            without fading the entire stage.
+        -->
         <main id="quiz-screen" class="screen quiz is-hidden" aria-label="Quiz">
           <div class="quiz__canvas">
             <div class="quiz__label">
               <p class="quiz__meta">TRY ON QUIZ<br />30 DAYS RISK FREE</p>
             </div>
+
             <div class="quiz__content" id="quiz-content">
               <div class="quiz__questionArea">
                 <h1 id="question-text" class="quiz__question"></h1>
@@ -105,9 +115,11 @@ Try On Quiz
           </div>
         </main>
 
-        <!-- =========================
-        LOADING SCREEN
-        ========================= -->
+        <!--
+          LOADING SCREEN:
+          - Shown briefly at quiz end (simulated processing).
+          - Kept as a separate screen for clean screen-state management.
+        -->
         <main
           id="loading-screen"
           class="screen quiz is-hidden"
@@ -121,9 +133,12 @@ Try On Quiz
           </section>
         </main>
 
-        <!-- =========================
-        RESULTS SCREEN
-        ========================= -->
+        <!--
+          RESULTS SCREEN:
+          - Rendered from computed rankings (state.ratings).
+          - DOM for tiles is created in app.js (recommended + 2 similar).
+          - Styling is scoped using body.is-results (set by showOnly()).
+        -->
         <main
           id="results-screen"
           class="screen results is-hidden"

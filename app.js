@@ -1,15 +1,29 @@
 /* =========================
-app.js
+app.js — review-ready (vanilla JS)
 Try On Quiz
 ========================= */
 "use strict";
 
-/* ========= Config (paths) ========= */
+/* =========================================================
+   1) CONFIG (data + assets)
+   ========================================================= */
 
-const DATA_URL = "../data.json";
-const ASSETS_BASE = "../assets_new";
+/**
+ * Where to load quiz/questions data from.
+ * Note: This is a relative path, so the app should be served (e.g., Live Server).
+ */
+const DATA_URL = "./data.json";
 
-/* Shoe id -> image filename mapping (must match assets filenames) */
+/**
+ * Base folder for images. In this version we use pre-trimmed assets in /assets_new.
+ * (Shoes were trimmed to a tight bounding box so CSS sizing is consistent.)
+ */
+const ASSETS_BASE = "./assets_new";
+
+/**
+ * Shoe id -> image filename mapping.
+ * Keys must match shoe ids in data.json, values must match actual filenames.
+ */
 const SHOE_IMAGE_FILENAME = {
   cloud: "Cloud.png",
   cloudx: "Cloud X.png",
@@ -21,6 +35,10 @@ const SHOE_IMAGE_FILENAME = {
   cloudflyer: "Cloudflyer.png",
 };
 
+/**
+ * Centralized asset paths.
+ * Keeping this in one place avoids scattering hard-coded paths around the app.
+ */
 const ASSETS = {
   logo: `${ASSETS_BASE}/on-logo.png`,
   runner: `${ASSETS_BASE}/Background Image Start Screen.png`,
@@ -28,9 +46,13 @@ const ASSETS = {
   shoeImg: (shoeId) => `${ASSETS_BASE}/${SHOE_IMAGE_FILENAME[shoeId] || ""}`,
 };
 
-/* ========= DOM references ========= */
+/* =========================================================
+   2) DOM REFERENCES (single lookup per element)
+   ========================================================= */
+
 const stageEl = document.getElementById("stage");
 
+/** Screen containers are toggled via .is-hidden */
 const screens = {
   start: document.getElementById("start-screen"),
   quiz: document.getElementById("quiz-screen"),
@@ -38,44 +60,74 @@ const screens = {
   results: document.getElementById("results-screen"),
 };
 
+/** Topbar controls */
 const menuBtn = document.getElementById("menu-btn");
 const logoImg = document.getElementById("logo-img");
 
+/** Primary actions */
 const startBtn = document.getElementById("start-btn");
 const restartBtn = document.getElementById("restart-btn");
 
+/** Static images set at boot */
 const runnerImg = document.getElementById("runner-img");
 const loaderImg = document.getElementById("loader-img");
 
-const quizContentEl = document.getElementById("quiz-content");
+/** Quiz DOM */
+const quizContentEl = document.getElementById("quiz-content"); // wrapper we fade
 const questionTextEl = document.getElementById("question-text");
 const answersEl = document.getElementById("answers");
 
+/** Results DOM */
 const summaryEl = document.getElementById("results-summary");
 const recommendedSlotEl = document.getElementById("recommended-slot");
 const similarGridEl = document.getElementById("similar-grid");
 
-/* ========= Data ========= */
-let DATA = null;
-let questionsById = null;
+/* =========================================================
+   3) DATA + STATE
+   ========================================================= */
 
-/* ========= State ========= */
+let DATA = null;            // full loaded JSON
+let questionsById = null;   // Map<number, question>
+
+/**
+ * state:
+ * - screen: current screen name
+ * - currentQuestionId: current quiz question id (kept for clarity; not strictly required)
+ * - ratings: accumulated shoe scores
+ */
 let state = null;
+
+/**
+ * isTransitioning blocks double-clicks during visual transitions (fade out/in).
+ */
 let isTransitioning = false;
 
-/* ========= Helpers ========= */
+/* =========================================================
+   4) HELPERS
+   ========================================================= */
+
+/**
+ * Convert an array of questions into a Map keyed by question id for O(1) lookup.
+ */
 function buildQuestionsMap(questions) {
   const map = new Map();
   for (const q of questions) map.set(q.id, q);
   return map;
 }
 
+/**
+ * Build a ratings object with all shoe ids initialized to 0.
+ */
 function createInitialRatings(shoes) {
   const ratings = Object.create(null);
   for (const s of shoes) ratings[s.id] = 0;
   return ratings;
 }
 
+/**
+ * Create a fresh initial application state.
+ * Called when starting/restarting quiz or navigating "home".
+ */
 function initialState() {
   return {
     screen: "start",
@@ -84,10 +136,17 @@ function initialState() {
   };
 }
 
+/**
+ * Get a question by id from the pre-built Map.
+ */
 function getQuestion(id) {
   return questionsById.get(id) || null;
 }
 
+/**
+ * Apply a scoring delta from an answer.
+ * ratingIncrease is an object like { cloud: 3, cloudx: 1, ... }.
+ */
 function applyRatingIncrease(ratingIncrease) {
   if (!ratingIncrease) return;
 
@@ -96,8 +155,11 @@ function applyRatingIncrease(ratingIncrease) {
   }
 }
 
+/**
+ * Compute ranked shoes by score.
+ * Tie-breaker: preserve the original order from data.json for deterministic output.
+ */
 function rankedShoes() {
-  // Tie-breaker: keep original order from data.json
   const orderIndex = new Map(DATA.shoes.map((s, i) => [s.id, i]));
 
   return DATA.shoes
@@ -108,19 +170,35 @@ function rankedShoes() {
     });
 }
 
-/* ========= Screen visibility ========= */
+/* =========================================================
+   5) SCREEN VISIBILITY
+   ========================================================= */
+
+/**
+ * Shows exactly one screen and hides the others.
+ * Also toggles a body class to scope results styling.
+ */
 function showOnly(screenName) {
   for (const key of Object.keys(screens)) {
     screens[key].classList.add("is-hidden");
   }
 
   screens[screenName].classList.remove("is-hidden");
+
+  // Results page uses a different palette and layout, scoped via .is-results on <body>
   document.body.classList.toggle("is-results", screenName === "results");
 
   state.screen = screenName;
 }
 
-/* ========= Transitions ========= */
+/* =========================================================
+   6) TRANSITIONS
+   ========================================================= */
+
+/**
+ * Fade the entire stage out, swap content, then fade in.
+ * Used for big navigation changes (start <-> quiz <-> loading <-> results).
+ */
 function transitionTo(updateFn) {
   if (isTransitioning) return;
   isTransitioning = true;
@@ -131,9 +209,10 @@ function transitionTo(updateFn) {
     if (e.propertyName !== "opacity") return;
     stageEl.removeEventListener("transitionend", onOutEnd);
 
+    // Update DOM while hidden
     updateFn();
 
-    // Force reflow so the fade-in transition triggers reliably
+    // Force reflow so fade-in triggers reliably
     void stageEl.offsetHeight;
     stageEl.classList.remove("is-out");
 
@@ -149,9 +228,11 @@ function transitionTo(updateFn) {
   stageEl.addEventListener("transitionend", onOutEnd);
 }
 
-/* ========= Quiz content transition ========= */
+/**
+ * Fade only quiz content (question + answers), then swap question and fade back in.
+ */
 function fadeQuizContentAndUpdate(updateFn) {
-  // Only use this on the quiz screen
+  // If we’re not in quiz screen (or wrapper missing), fall back to stage transition.
   if (state.screen !== "quiz" || !quizContentEl) {
     transitionTo(updateFn);
     return;
@@ -166,10 +247,10 @@ function fadeQuizContentAndUpdate(updateFn) {
     if (e.propertyName !== "opacity") return;
     quizContentEl.removeEventListener("transitionend", onFadeOutEnd);
 
-    // Update content while hidden
+    // Update quiz DOM while hidden
     updateFn();
 
-    // Force reflow so fade-in triggers
+    // Force reflow so fade-in triggers reliably
     void quizContentEl.offsetHeight;
 
     quizContentEl.classList.remove("is-fading");
@@ -186,8 +267,14 @@ function fadeQuizContentAndUpdate(updateFn) {
   quizContentEl.addEventListener("transitionend", onFadeOutEnd);
 }
 
+/* =========================================================
+   7) RENDERING (DOM updates)
+   ========================================================= */
 
-/* ========= Rendering ========= */
+/**
+ * Render a single quiz question and its answer buttons.
+ * Buttons are created dynamically from data.json.
+ */
 function renderQuestionScreen(questionId) {
   const q = getQuestion(questionId);
 
@@ -197,7 +284,10 @@ function renderQuestionScreen(questionId) {
     return;
   }
 
+  state.currentQuestionId = questionId;
   questionTextEl.textContent = q.copy;
+
+  // Replace all answers for this question
   answersEl.innerHTML = "";
 
   q.answers.forEach((ans, idx) => {
@@ -206,6 +296,7 @@ function renderQuestionScreen(questionId) {
     btn.className = "answer-btn";
     btn.textContent = ans.copy;
 
+    // Store identifiers as data-* attributes to handle clicks via event delegation
     btn.dataset.qid = String(q.id);
     btn.dataset.aindex = String(idx);
 
@@ -213,11 +304,14 @@ function renderQuestionScreen(questionId) {
   });
 }
 
+/**
+ * Create a results "tile" for a shoe.
+ * Note: innerHTML is acceptable here because data comes from controlled JSON.
+ */
 function createShoeTile(shoe) {
   const wrap = document.createElement("div");
   wrap.className = "shoe-block";
 
-  // Note: data is controlled (data.json), so innerHTML is acceptable here.
   wrap.innerHTML = `
     <article class="shoe-tile">
       <img
@@ -235,7 +329,7 @@ function createShoeTile(shoe) {
       <div class="shoe-tile__meta">
         <span>200 CHF</span>
         <span>|</span>
-        <span>Neon & Grey</span>
+        <span>Neon &amp; Grey</span>
       </div>
 
       <div class="shoe-tile__swatches" aria-label="Available colors">
@@ -259,30 +353,34 @@ function createShoeTile(shoe) {
   return wrap;
 }
 
+/**
+ * Render the final results:
+ * - Compute ranking
+ * - Fill summary text
+ * - Render 1 recommended + 2 similar shoes
+ */
 function renderResultsScreen() {
   const ranked = rankedShoes();
-
   const recommended = ranked[0] ?? null;
-  const similar = ranked.slice(1, 3); // only 2 similar shoes
+  const similar = ranked.slice(1, 3); // exactly 2 similar shoes
 
-  // Summary text
+  // Summary copy based on rendered shoes
   if (summaryEl) {
     if (recommended && similar.length > 0) {
       const names = [recommended.name, similar[0].name];
-      const formatted =
-        names.length === 2
-          ? `${names[0]} and ${names[1]}`
-          : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
-
-      summaryEl.textContent = `Based on your selection we’ve decided on the ${formatted}! Enjoy the 30 day trial!`;
+      summaryEl.textContent =
+        `Based on your selection we’ve decided on the ${names[0]} and ${names[1]}! ` +
+        `Enjoy the 30 day trial!`;
     } else if (recommended) {
-      summaryEl.textContent = `Based on your selection we’ve decided on the ${recommended.name}! Enjoy the 30 day trial!`;
+      summaryEl.textContent =
+        `Based on your selection we’ve decided on the ${recommended.name}! ` +
+        `Enjoy the 30 day trial!`;
     } else {
       summaryEl.textContent = "";
     }
   }
 
-  // Clear previous tiles
+  // Clear previous render
   recommendedSlotEl.innerHTML = "";
   similarGridEl.innerHTML = "";
 
@@ -296,7 +394,13 @@ function renderResultsScreen() {
   }
 }
 
-/* ========= Actions ========= */
+/* =========================================================
+   8) ACTIONS (state transitions)
+   ========================================================= */
+
+/**
+ * Start the quiz at question 0 from the start screen.
+ */
 function startQuiz() {
   transitionTo(() => {
     state = initialState();
@@ -305,6 +409,9 @@ function startQuiz() {
   });
 }
 
+/**
+ * Restart the quiz from results screen back to question 0.
+ */
 function restartQuiz() {
   transitionTo(() => {
     state = initialState();
@@ -313,6 +420,11 @@ function restartQuiz() {
   });
 }
 
+/**
+ * Handle an answer click:
+ * - apply scoring
+ * - either go to the next question or finish (loading -> results)
+ */
 function handleAnswerClick(qidStr, aIndexStr) {
   const qid = Number(qidStr);
   const aIndex = Number(aIndexStr);
@@ -327,34 +439,34 @@ function handleAnswerClick(qidStr, aIndexStr) {
 
   const next = ans.nextQuestion;
 
-  // End -> Loading -> Results
   if (next === "" || next === null || typeof next === "undefined") {
-    transitionTo(() => {
-      showOnly("loading");
-    });
+    if (isTransitioning) return;
+    isTransitioning = true;
+
+    // Instant switch to loading (no transitionTo)
+    showOnly("loading");
 
     window.setTimeout(() => {
-      transitionTo(() => {
-        showOnly("results");
-        renderResultsScreen();
-      });
-    }, 900);
+      // Instant switch to results (no transitionTo)
+      showOnly("results");
+      renderResultsScreen();
+
+      isTransitioning = false;
+    }, 900); // "processing" time for UI
 
     return;
   }
 
-  // Continue quiz
-fadeQuizContentAndUpdate(() => {
-  // same screen, just new content
-  renderQuestionScreen(Number(next));
-});
+  // Continue quiz: fade only the quiz content (question + answers)
+  fadeQuizContentAndUpdate(() => {
+    renderQuestionScreen(Number(next));
+  });
 }
 
-/* ========= Events ========= */
-startBtn.addEventListener("click", startQuiz);
-restartBtn.addEventListener("click", restartQuiz);
-
-// Hamburger -> go to start screen (Home)
+/**
+ * "Home" navigation: both hamburger and logo return to start screen.
+ * If data is loaded, we reset quiz state.
+ */
 function goToStartScreen() {
   if (isTransitioning) return;
 
@@ -364,37 +476,49 @@ function goToStartScreen() {
   });
 }
 
+/* =========================================================
+   9) EVENTS
+   ========================================================= */
+
+startBtn.addEventListener("click", startQuiz);
+restartBtn.addEventListener("click", restartQuiz);
+
+// Clicking on hamburger menu returns to start screen.
 menuBtn?.addEventListener("click", (e) => {
   e.preventDefault();
   goToStartScreen();
 });
 
+// Clicking on logo icon returns to start screen.
 logoImg?.addEventListener("click", (e) => {
   e.preventDefault();
   goToStartScreen();
 });
 
-
-// Delegated clicks inside stage: answers, shop, swatches
+/**
+ * Event delegation:
+ * We listen once on #stage and detect which button was clicked.
+ * This works even for buttons created dynamically (answers, swatches, tiles).
+ */
 stageEl.addEventListener("click", (e) => {
   if (isTransitioning) return;
 
   const btn = e.target.closest("button");
   if (!btn) return;
 
-  // Answer buttons
+  // Quiz answers
   if (btn.classList.contains("answer-btn")) {
     handleAnswerClick(btn.dataset.qid, btn.dataset.aindex);
     return;
   }
 
-  // Shop buttons
+  // "Shop now" buttons (demo behavior)
   if (btn.dataset.action === "shop") {
     alert(`Shop: ${btn.dataset.shoeId} (no URL provided in data.json)`);
     return;
   }
 
-  // Swatch selection
+  // Swatch selection (toggle active state)
   if (btn.dataset.swatch !== undefined) {
     const swatchGroup = btn.closest(".shoe-tile__swatches");
     if (!swatchGroup) return;
@@ -407,12 +531,22 @@ stageEl.addEventListener("click", (e) => {
   }
 });
 
-/* ========= Boot ========= */
+/* =========================================================
+   10) BOOT (load data, set initial screen)
+   ========================================================= */
+
+/**
+ * Initialize the app:
+ * - set static images
+ * - load data.json
+ * - build question lookup map
+ * - show start screen
+ */
 async function init() {
-  // Set images (keeps HTML clean)
+  // Set images via JS so HTML stays clean and paths are centralized.
   runnerImg.src = ASSETS.runner;
   loaderImg.src = ASSETS.loader;
-  logoImg.src = ASSETS.logo;
+  if (logoImg) logoImg.src = ASSETS.logo;
 
   try {
     const res = await fetch(DATA_URL);

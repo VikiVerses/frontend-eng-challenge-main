@@ -1,35 +1,100 @@
-## Frontend Engineer Use Case
+# Try On Quiz — Runner Shoe Finder (Vanilla JS)
 
-### Your task
-Build a small quiz for runners to find their perfect shoe.
+A small, data-driven quiz that recommends the best-fitting running shoe based on user answers.  
+Built with **vanilla JavaScript + HTML + custom CSS** (no framework, no CSS library).
 
-### General notes
-- We have provided you with a JSON file (`data.json`) with all the data concerning questions, answers and shoes.
-- Depending on how a question is answered, users can be taken to different follow-up questions. You will find the `nextQuestion` in the JSON file.
-- A blank `nextQuestion` means the quiz is finished and the results are presented (the best fitting shoes).
-- Also depending on the answer, we update the ranking of shoes. How much each shoe gains per answer is listed in the JSON file (`ratingIncrease`).
-- Skip the main navigation, concentrate on the quiz.
-- You don’t have to use the original fonts. Just go with some similar Google fonts.
-- Assets can be found in the assets directory.
-- We prefer to see a solution where you write your own scss code instead of using a css framework like Bootstrap or Tailwind.
 
-### Technical implementation
-- If you already have some knowledge of Vue.js, create an app with vue-cli and show off your skills. If you are not familiar with Vue.js yet, vanilla JS or another frontend framework like React is fine too. Feel free to use a boilerplate to get started.
-- Please follow the design of the layouts below.
-- Add animations and transitions at your discretion.
-- If you have any questions, do not hesitate to get in touch!
 
-### Layouts
-#### Start Screen
-![alt text](./layouts/1_start_screen.png "Start Screen")
+## Task summary
+- Use the provided `data.json` as the single source of:
+  - questions/answers
+  - branching via `nextQuestion`
+  - scoring via `ratingIncrease`
+- If `nextQuestion` is empty → end quiz and show results
+- Follow the provided layouts (navigation not required)
+- Use similar Google fonts (original fonts not required)
+- Prefer custom CSS (no Tailwind/Bootstrap)
 
-#### Question Screen
-![alt text](./layouts/2_question_screen.png "Question Screen")
 
-#### Loading Screen
-![alt text](./layouts/3_loading_screen.png "Loading Screen")
 
-#### Results Screen
-![alt text](./layouts/4_results_screen.png "Results Screen")
+## What was implemented
+- **Single-page, multi-screen UI**:
+  - Start → Quiz → Loading → Results  
+  - Screens exist in the DOM and are shown/hidden by toggling `.is-hidden`.
+- **Data-driven rendering**:
+  - question text and answer buttons are generated from `data.json`
+  - branching uses `answer.nextQuestion`
+- **Scoring + ranking**:
+  - each answer applies `answer.ratingIncrease` into `state.ratings`
+  - results show **1 recommended** shoe (highest score) + **2 similar** shoes (next highest)
+  - deterministic ties: preserve original shoe order from `data.json`
+- **Transitions + interaction safety**:
+  - fade transition for screen changes
+  - lighter fade for question changes (`#quiz-content`)
+  - `isTransitioning` blocks double clicks during transitions
+- **Custom CSS**:
+  - CSS variables (“design tokens”) for consistent sizing/colors/typography
+  - results theme scoped via `body.is-results`
+  - responsive adjustments for small width screens
+  - respects `prefers-reduced-motion`
 
-Have fun and good luck!
+
+
+## Technical overview
+
+### Data load
+`app.js` loads `data.json` with `fetch()` in `init()`.  
+Questions are indexed into `questionsById: Map<number, Question>` for O(1) access.
+
+### State model
+The app keeps minimal state:
+- `screen`: active screen name
+- `currentQuestionId`: current question id
+- `ratings`: `{ [shoeId]: number }` accumulated scores
+
+### Answer handling
+When an answer is clicked:
+1. apply `ratingIncrease` → update `state.ratings`
+2. read `nextQuestion`
+3. if empty → show Loading, then render Results
+4. else → render the next question (quiz-content fade)
+
+### Events
+Uses **event delegation** on `#stage` so dynamically created buttons work without re-binding:
+- answer buttons (`.answer-btn`)
+- demo “Shop now” buttons (`data-action="shop"`)
+- swatches (`data-swatch`)
+
+
+
+## Project structure
+- `index.html` — all screens + shared stage container
+- `styles.css` — custom styling (no framework)
+- `app.js` — state, rendering, branching, ranking, transitions
+- `data.json` — provided dataset
+- `assets/` — original assets from the task package
+- `assets_processed/` — processed/trimmed assets used by the app
+- `tools/` — helper script (Python) to normalize/crop shoe images for consistent sizing
+- `layouts/` — reference layout screenshots from the brief
+
+ 
+
+## Run locally
+Because the app loads `data.json` via `fetch()`, run using a local server:
+- VS Code: **Live Server** → open `index.html`
+
+ 
+
+## Asset note (logo)
+The original logo asset was missing in the provided package.  
+To keep the layout consistent, I added a replacement On logo sourced online and used for non-commercial/demo purposes. The path is centralized (`ASSETS.logo` in `app.js`) so it can be swapped easily.
+
+
+
+## Notes / assumptions
+- **Image preprocessing (Python):** 
+    The provided shoe images had inconsistent whitespace/padding, which made it hard to size them consistently inside the result tiles.  
+    To make layout and alignment predictable, I preprocessed the shoe images with a small **Python** script to **auto-crop transparent/white margins** and export tighter assets (stored in `assets_new/`).
+
+- “Shop now” is a demo action (no product URLs in `data.json`)
+- Price/color text inside tiles is placeholder UI copy (not provided by the dataset)
