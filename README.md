@@ -1,5 +1,7 @@
 # Try On Quiz — Runner Shoe Finder (Vanilla JS)
 
+**Live demo:** [GitHub Pages](https://vikiverses.github.io/frontend-eng-challenge-main/)
+
 A small, data-driven quiz that recommends the best-fitting running shoe based on user answers.  
 Built with **vanilla JavaScript + HTML + custom CSS** (no framework, no CSS library).
 
