@@ -18,7 +18,7 @@ const DATA_URL = "./data.json";
  * Base folder for images. In this version we use pre-trimmed assets in /assets_new.
  * (Shoes were trimmed to a tight bounding box so CSS sizing is consistent.)
  */
-const ASSETS_BASE = "./assets_new";
+const ASSETS_BASE = "./assets_processed";
 
 /**
  * Shoe id -> image filename mapping.
