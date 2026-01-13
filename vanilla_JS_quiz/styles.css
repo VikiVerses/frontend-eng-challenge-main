@@ -65,6 +65,10 @@ body {
   height: 100%;
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   margin: 0;
   font-family: var(--font-serif);
@@ -86,6 +90,7 @@ button:focus-visible {
 /* -------------------------
 3) Topbar / navigation
 -------------------------- */
+
 .topbar {
   height: var(--topbar-height);
   padding: 0 28px;
@@ -96,7 +101,8 @@ button:focus-visible {
   align-items: center;
   justify-content: space-between;
 
-  border-bottom: var(--topbar-border-bottom) solid #d9d9d9;
+  border-bottom:0;
+  box-sizing: border-box;
 }
 
 /* Click target */
@@ -134,7 +140,7 @@ button:focus-visible {
 
 /* Logo */
 .topbar__logo {
-  width: 60px;
+  width: 44px;
   height: auto;
   display: grid;
   place-items: center;
@@ -401,6 +407,10 @@ START SCREEN
   opacity: 0.9;
 }
 
+.quiz__content {
+  display: contents;
+}
+
 .quiz__questionArea {
   display: grid;
   place-items: center;
@@ -462,6 +472,18 @@ START SCREEN
 
 .answers button:active {
   background: rgba(255, 255, 255, 0.18);
+  transform: translateY(1px);
+}
+
+/* Quiz-only fade (question + answers) */
+.quiz__content {
+  opacity: 1;
+  transition: opacity 180ms ease;
+  will-change: opacity;
+}
+
+.quiz__content.is-fading {
+  opacity: 0;
 }
 
 /* ---------- Small height screens (short laptops / mobile landscape) ---------- */
@@ -538,6 +560,14 @@ RESULTS SCREEN (scoped to .is-results on body)
   background: #fff;
   color: #1b1b1b;
 }
+
+.topbar { border-bottom: 0; }
+
+.is-results .topbar {
+  box-shadow:
+    inset 0 -2px 0 #d9d9d9; /* divider line */
+}
+
 
 .is-results .results__inner {
   max-width: 760px;

@@ -39,13 +39,15 @@ const screens = {
 };
 
 const menuBtn = document.getElementById("menu-btn");
+const logoImg = document.getElementById("logo-img");
+
 const startBtn = document.getElementById("start-btn");
 const restartBtn = document.getElementById("restart-btn");
 
-const logoImg = document.getElementById("logo-img");
 const runnerImg = document.getElementById("runner-img");
 const loaderImg = document.getElementById("loader-img");
 
+const quizContentEl = document.getElementById("quiz-content");
 const questionTextEl = document.getElementById("question-text");
 const answersEl = document.getElementById("answers");
 
@@ -146,6 +148,44 @@ function transitionTo(updateFn) {
 
   stageEl.addEventListener("transitionend", onOutEnd);
 }
+
+/* ========= Quiz content transition ========= */
+function fadeQuizContentAndUpdate(updateFn) {
+  // Only use this on the quiz screen
+  if (state.screen !== "quiz" || !quizContentEl) {
+    transitionTo(updateFn);
+    return;
+  }
+
+  if (isTransitioning) return;
+  isTransitioning = true;
+
+  quizContentEl.classList.add("is-fading");
+
+  const onFadeOutEnd = (e) => {
+    if (e.propertyName !== "opacity") return;
+    quizContentEl.removeEventListener("transitionend", onFadeOutEnd);
+
+    // Update content while hidden
+    updateFn();
+
+    // Force reflow so fade-in triggers
+    void quizContentEl.offsetHeight;
+
+    quizContentEl.classList.remove("is-fading");
+
+    const onFadeInEnd = (ev) => {
+      if (ev.propertyName !== "opacity") return;
+      quizContentEl.removeEventListener("transitionend", onFadeInEnd);
+      isTransitioning = false;
+    };
+
+    quizContentEl.addEventListener("transitionend", onFadeInEnd);
+  };
+
+  quizContentEl.addEventListener("transitionend", onFadeOutEnd);
+}
+
 
 /* ========= Rendering ========= */
 function renderQuestionScreen(questionId) {
@@ -304,10 +344,10 @@ function handleAnswerClick(qidStr, aIndexStr) {
   }
 
   // Continue quiz
-  transitionTo(() => {
-    showOnly("quiz");
-    renderQuestionScreen(Number(next));
-  });
+fadeQuizContentAndUpdate(() => {
+  // same screen, just new content
+  renderQuestionScreen(Number(next));
+});
 }
 
 /* ========= Events ========= */
@@ -315,17 +355,25 @@ startBtn.addEventListener("click", startQuiz);
 restartBtn.addEventListener("click", restartQuiz);
 
 // Hamburger -> go to start screen (Home)
-if (menuBtn) {
-  menuBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    if (isTransitioning) return;
+function goToStartScreen() {
+  if (isTransitioning) return;
 
-    transitionTo(() => {
-      if (DATA) state = initialState();
-      showOnly("start");
-    });
+  transitionTo(() => {
+    if (DATA) state = initialState();
+    showOnly("start");
   });
 }
+
+menuBtn?.addEventListener("click", (e) => {
+  e.preventDefault();
+  goToStartScreen();
+});
+
+logoImg?.addEventListener("click", (e) => {
+  e.preventDefault();
+  goToStartScreen();
+});
+
 
 // Delegated clicks inside stage: answers, shop, swatches
 stageEl.addEventListener("click", (e) => {
