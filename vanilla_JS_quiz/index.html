@@ -1,0 +1,158 @@
+<!-- =========================
+index.html
+Try On Quiz
+========================= -->
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Try On Quiz</title>
+
+    <link rel="stylesheet" href="./styles.css" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@300;400;600&family=Inter:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+
+  <body>
+    <!--
+      "app" is a global wrapper.
+    -->
+    <div id="app" class="app" aria-live="polite">
+
+      <!-- =========================
+      TOPBAR / NAVIGATION
+      ========================= -->
+      <header class="topbar">
+        <button
+          class="topbar__hamburger"
+          type="button"
+          aria-label="Menu (not implemented)"
+          id="menu-btn"
+        >
+          <span class="hamburger-icon" aria-hidden="true">
+            <span></span><span></span><span></span>
+          </span>
+        </button>
+
+        <div class="topbar__logo">
+          <img id="logo-img" class="topbar__logoImg" src="" alt="On logo" />
+        </div>
+
+        <!-- Spacer keeps the logo centered (same width as the left button) -->
+        <div class="topbar__spacer" aria-hidden="true"></div>
+      </header>
+
+      <!-- Stage: we animate this container when switching screens -->
+      <div id="stage" class="stage">
+
+        <!-- =========================
+        START SCREEN
+        ========================= -->
+        <main id="start-screen" class="screen start">
+          <div class="start__inner">
+            <div class="start__content">
+              <h1 class="start__headline">
+                Take the quiz<br />
+                and try your first pair!
+              </h1>
+
+              <button id="start-btn" class="start__cta" type="button">
+                Try On Trial
+              </button>
+
+              <div class="start__note">30 Days risk free</div>
+            </div>
+
+            <img
+              id="runner-img"
+              class="start__runner"
+              src=""
+              alt=""
+              aria-hidden="true"
+            />
+          </div>
+        </main>
+
+        <!-- =========================
+        QUIZ SCREEN
+        ========================= -->
+        <main id="quiz-screen" class="screen quiz is-hidden" aria-label="Quiz">
+          <div class="quiz__canvas">
+            <div class="quiz__label">
+              <p class="quiz__meta">TRY ON QUIZ<br />30 DAYS RISK FREE</p>
+            </div>
+
+            <div class="quiz__questionArea">
+              <h1 id="question-text" class="quiz__question"></h1>
+            </div>
+
+            <div class="quiz__answersArea">
+              <div
+                id="answers"
+                class="answers"
+                role="group"
+                aria-label="Answer options"
+              ></div>
+            </div>
+          </div>
+        </main>
+
+        <!-- =========================
+        LOADING SCREEN
+        ========================= -->
+        <main
+          id="loading-screen"
+          class="screen quiz is-hidden"
+          aria-label="Loading"
+        >
+          <section class="quiz__panel">
+            <div class="loadingac__wrap">
+              <img id="loader-img" class="loading__img" src="" alt="Loading" />
+              <p class="loading__text">We’re running to get your results.</p>
+            </div>
+          </section>
+        </main>
+
+        <!-- =========================
+        RESULTS SCREEN
+        ========================= -->
+        <main
+          id="results-screen"
+          class="screen results is-hidden"
+          aria-label="Results"
+        >
+          <div class="results__inner">
+            <div class="results__title">Congratulations!</div>
+            <p id="results-summary" class="results__summary"></p>
+
+            <section class="results__section" aria-label="Recommended">
+              <div id="recommended-slot" class="recommended-slot"></div>
+            </section>
+
+            <section class="results__section" aria-label="Similar">
+              <div class="results__sectionLabel">Similar profiles</div>
+              <div
+                id="similar-grid"
+                class="shoe-grid"
+                aria-label="Similar shoes"
+              ></div>
+            </section>
+
+            <button id="restart-btn" class="restart" type="button">
+              Restart Quiz
+            </button>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <script defer src="./app.js"></script>
+  </body>
+</html>
